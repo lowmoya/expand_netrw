@@ -261,7 +261,7 @@ local function toggleNetrw()
 		-- Netrw is open
 		if expand('%') == 'NetrwTreeListing' then
 			-- Netrw is selected, close it
-			cmd(vim.g.expand_netrw_open_cmd)
+			cmd.quit()
 		else
 			-- Go to netrw
 			vim.api.nvim_set_current_win(window)
