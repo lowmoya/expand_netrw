@@ -162,7 +162,7 @@ local function promptFocus()
 
 	-- Check for bad input
 	if window < 1 or window > #windows then
-		vim.api.nvim_set_current_win(windows[1])
+		vim.api.nvim_set_current_win(windows[netrw])
 		print('Invalid selection')
 		return false
 	end
