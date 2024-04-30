@@ -13,13 +13,13 @@ if vim.g.expand_netrw_grow_direction == nil then
 	vim.g.expand_netrw_grow_direction = 'belowright'
 end
 
+expand_netrw = {} -- Global functions
+
 
 -- Shortcuts
-local call = vim.cmd.call
 local cmd = vim.cmd
 local expand = vim.fn.expand
 local input = vim.fn.input
-local keymap = vim.keymap.set
 
 
 -- Configure Netrw display options
@@ -141,7 +141,7 @@ local function promptFocus()
 		return false
 	end
 
-	vim.cmd.redraw()
+	cmd('redraw')
 
 	-- Get input after delay so windows can render
 	vim.fn.inputsave()
@@ -185,15 +185,16 @@ local function splitFile(direction)
 
 	if string.byte(file, #file) == 47 then
 		-- Default behavior for directories
-		cmd.execute('":normal \\<CR>"')
+		cmd('execute ":normal \\<CR>"')
 		bindNetrwKeys()
 		return
 	end
 
 	-- Get path through Netrw split
-	cmd.execute('":normal \\<CR>"')
+	cmd('execute ":normal \\<CR>"')
 	local path = expand('%')
-	vim.cmd.quit()
+	cmd('quit')
+
 
 	-- Forward to prompted split
 	if promptFocus() then
@@ -201,49 +202,50 @@ local function splitFile(direction)
 	end
 end
 
-local function splitVertical()
+expand_netrw.splitVertical = function()
 	splitFile('vnew')
 end
 
-local function splitHorizontal()
+expand_netrw.splitHorizontal = function()
 	splitFile('new')
 end
 
-local function open()
+expand_netrw.open = function()
 	local file = vim.fn.getline('.')
 
 	if string.byte(file, #file) == 47 then
 		-- Default behavior for directories
-		cmd.execute('":normal \\<CR>"')
+		cmd('execute ":normal \\<CR>"')
 		bindNetrwKeys()
 		return
 	end
 
 	-- Get path through Netrw split
-	cmd.execute('":normal \\<CR>"')
+	cmd('execute ":normal \\<CR>"')
 	local path = expand('%')
-	vim.cmd.quit()
+	cmd('quit')
 
 	-- Forward to prompted edit
 	if promptFocus() then
-		cmd.edit(path)
+		cmd('edit ' .. path)
 	end
 end
 
 bindNetrwKeys = function()
 	-- Rebind move left
-	keymap('n', '<C-l>', ':wincmd l<CR>', { buffer = true, silent = true })
-	keymap('n', '<C-r>', ':wincmd t<CR>', { buffer = true, silent = true })
+	cmd('nmap <buffer><silent> <C-l> :wincmd l<CR>')
+	cmd('nmap <buffer><silent> <C-r> :wincmd t<CR>')
+
 
 	-- Splitting
-	keymap('n', 's', splitVertical, { buffer = true })
-	keymap('n', 'h', splitHorizontal, { buffer = true })
-	keymap('n', 'n', open, { buffer = true })
+	cmd('nmap <buffer><silent> s :lua expand_netrw.splitVertical()<CR>')
+	cmd('nmap <buffer><silent> h :lua expand_netrw.splitHorizontal()<CR>')
+	cmd('nmap <buffer><silent> n :lua expand_netrw.open()<CR>')
 end
 
 
 -- Initalize function
-local function toggleNetrw()
+expand_netrw.toggleNetrw = function()
 	-- Test if Netrw is open
 	local windows = vim.api.nvim_list_wins()
 	local length = #windows
@@ -261,7 +263,7 @@ local function toggleNetrw()
 		-- Netrw is open
 		if expand('%') == 'NetrwTreeListing' then
 			-- Netrw is selected, close it
-			cmd.quit()
+			cmd('quit')
 		else
 			-- Go to netrw
 			vim.api.nvim_set_current_win(window)
@@ -275,17 +277,18 @@ end
 
 
 -- Close Netrw if it's the last thing open
-local augroup = vim.api.nvim_create_augroup('expand_netrw', { clear = true })
-vim.api.nvim_create_autocmd({"WinEnter"}, {
-	group = augroup,
-	pattern = 'NetrwTreeListing',
-	callback = function(ev)
-		if #vim.api.nvim_list_wins() == 1 then
-			vim.cmd.quit()
-		end
+expand_netrw.enterNetrw = function()
+	if #vim.api.nvim_list_wins() == 1 then
+		cmd('quit')
 	end
-})
+end
+vim.cmd([[
+	augroup expand_netrew
+		autocmd!
+		autocmd WinEnter NetrwTreeListing lua expand_netrw.enterNetrw()
+	augroup END
+]])
 
 
 -- Key maps
-keymap('n', ' e', toggleNetrw)
+cmd('nmap <silent> e :lua expand_netrw.toggleNetrw()<CR>')
